@@ -1,6 +1,6 @@
 use sqlx::postgres::PgPoolOptions;
 use std::{env, path::PathBuf};
-use rocket::{fairing::{Fairing, Info, Kind}, http::Header, response::status, serde::json::Json, Request, Response};
+use rocket::{fairing::{Fairing, Info, Kind}, http::Header, serde::json::Json, Request, Response};
 
 #[macro_use]
 extern crate rocket;

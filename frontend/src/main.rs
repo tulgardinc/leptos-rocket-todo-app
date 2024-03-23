@@ -1,7 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use leptos::{html::Object, logging::log, wasm_bindgen::JsCast, *};
 use serde::{Deserialize, Serialize};
+use web_sys::{wasm_bindgen::{closure::Closure, JsValue}, Event, HtmlInputElement};
 
 fn main() {
     console_error_panic_hook::set_once();
@@ -18,6 +19,7 @@ struct Todo {
 
 #[component]
 fn App() -> impl IntoView {
+    let (todo_input, set_todo_input) = create_signal(String::new());
     let (todos, set_todos) = create_signal(Vec::<Todo>::new());
 
     let todo_resource = create_resource(|| (), |_| async move {
@@ -57,28 +59,28 @@ move |val, _, _| {
         }
     });
 
-    let handle_todo_creation = move |_| {
-        let input = document()
-        .get_element_by_id("add-input")
-        .unwrap()
-        .dyn_into::<web_sys::HtmlInputElement>()
-        .expect("can't cast");
-
-        let text = input.value();
-
-        if text == "" {
+    let handle_todo_creation = move || {
+        if todo_input.get() == "" {
             return
         }
 
         let new_todo = Todo {
             id: None,
-            name: text,
+            name: todo_input.get(),
             is_complete: false,
         };
 
         add_todo_action.dispatch(new_todo);
 
+
+        let input = document()
+            .get_element_by_id("add-input")
+            .unwrap()
+            .dyn_into::<HtmlInputElement>()
+            .unwrap();
+        input.focus().unwrap();
         input.set_value("");
+        set_todo_input.set(String::new());
     };
 
     let delete_todo_action = create_action(|input: &i32| {
@@ -141,8 +143,13 @@ move |val, _, _| {
                                                 handle_todo_done_toggle(t.id.unwrap());
                                             }
 
-                                            class="todo-button"
+                                            class=if !t.is_complete {
+                                                "todo-button"
+                                            } else {
+                                                "todo-done-button"
+                                            }
                                         >
+
                                             {if !t.is_complete { "TODO" } else { "DONE" }}
                                         </button>
                                         <h2 class=format!(
@@ -166,8 +173,37 @@ move |val, _, _| {
 
                 </div>
                 <div class="new-todo-container">
-                    <input id="add-input" type="text" class="todo-name"/>
-                    <button on:click=handle_todo_creation class="create">
+                    <input
+                        value=todo_input.get()
+                        id="add-input"
+                        type="text"
+                        class="todo-name"
+                        on:input=move |e| {
+                            set_todo_input
+                                .set(
+                                    e
+                                        .target()
+                                        .unwrap()
+                                        .dyn_into::<HtmlInputElement>()
+                                        .unwrap()
+                                        .value(),
+                                )
+                        }
+
+                        on:keydown=move |e| {
+                            if e.key() == "Enter" {
+                                handle_todo_creation();
+                            }
+                        }
+                    />
+
+                    <button
+                        on:click=move |_| {
+                            handle_todo_creation();
+                        }
+
+                        class="create"
+                    >
                         ADD
                     </button>
                 </div>
