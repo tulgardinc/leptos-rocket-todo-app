@@ -1,0 +1,2 @@
+[build]
+dist = "../backend/dist"
